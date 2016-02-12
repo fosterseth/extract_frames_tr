@@ -57,6 +57,15 @@ When re-running the script, it will move sync.txt from source to destination
 
 '''
 
+# CONFIGURATION
+synced_folder_name = 'cam%02d_video_r' # cam01_video_r
+frames_folder_name = 'cam%02d_frames_p' # cam01_frames_p
+audio_folder_name = 'speech_r'
+info_file_name = '__%s_%s_info.txt' # __20160101_16999
+frame_rate = 30 # frame rate of output videos and frames
+num_cameras = 11 # number camera folder to create; e.g. cam01_*, cam02_*,...,cam11_*
+additional_folders = ['derived', 'extra_p', 'speech_transcription_p']
+
 def time_duration(t1,t2):
 	datetimes = [t1, t2]
 	datetimes = [datetime.datetime.strptime(x, '%M:%S.%f') for x in datetimes]
@@ -71,6 +80,21 @@ def copy_if_newer(filename, directory):
 			shutil.copy2(filename, directory)
 	else:
 		shutil.copy2(filename, directory)
+
+def make_folder_bak(foldername):
+	if os.path.exists(foldername) == False:
+		os.mkdir(foldername)
+	else:
+		if len(os.listdir(foldername)) > 0:
+			i = 1
+			while True:
+				bakfoldername = foldername + '_bak%d' % i
+				if os.path.exists(bakfoldername) == True:
+					i += 1
+				else:
+					break
+			os.rename(foldername, bakfoldername)
+			os.mkdir(foldername)
 
 f = open('sync.txt', 'rb')
 reader = csv.reader(f)
@@ -117,47 +141,30 @@ syncoffsets = [x-datetimes[syncidx] for x in datetimes]
 extractduration, extractdatetimes = time_duration(extract_begin, extract_end)
 syncduration, syncdatetimes = time_duration(sync_begin, sync_end)
 
-indir = os.getcwd()
-indir = indir.split('\\')
-filesep = '\\'
-dirprefix = indir[0] + filesep + 'multisensory' + filesep + 'experiment_' + expID + filesep + 'included' + filesep + '__' + dateofexp + '_' + kidID
+for i in range(1,num_cameras):
+	foldername = frames_folder_name % int(i)
+	make_folder_bak(foldername)	
+	foldername = synced_folder_name % int(i)
+	make_folder_bak(foldername)
+	
+foldername = audio_folder_name
+make_folder_bak(audio_folder_name)
 
-if os.path.exists(dirprefix) == False:
-	os.makedirs(dirprefix)
-
-allfiles = os.listdir('.')
-log = ['cam' not in x for x in allfiles]
-fileswithoutcam = [i for(i,v) in zip(allfiles, log) if v]
-
-for f in fileswithoutcam:
-	copy_if_newer(f, dirprefix)
-
-for i in range(1,11):
-	foldername = dirprefix + filesep + 'cam%02d_frames_p' % int(i)
+for i in range(0,len(additional_folders)-1):
+	foldername = additional_folders[i]
 	if os.path.exists(foldername) == False:
 		os.mkdir(foldername)
-		
-	foldername = dirprefix + filesep + 'cam%02d_video_r' % int(i)
-	if os.path.exists(foldername) == False:
-		os.mkdir(foldername)
-
-foldername = dirprefix + filesep + 'extra_p'
-if os.path.exists(foldername) == False:
-	os.mkdir(foldername)
-
-foldername = dirprefix + filesep + 'derived'
-if os.path.exists(foldername) == False:
-	os.mkdir(foldername)
 
 for i in range(0,len(camID)):
 	
-	outdirvideo = dirprefix + filesep + 'cam%02d_video_r' % int(camID[i])
-	outdirframes = dirprefix + filesep + 'cam%02d_frames_p' % int(camID[i])
+	outdirvideo = synced_folder_name % int(camID[i])
+	outdirframes = frames_folder_name % int(camID[i])
+	outdiraudio = audio_folder_name
 	
 	# ffmpeg has the ability to have multiple outputs for a single input, which should speed up processing time
 	# therefore, the below subcommands are determined and then combined for a single subprocess call to ffmpeg
 	if toextract[i] == "1" or tosync[i] == "1":
-		videoname = glob.glob('*cam%02d*' % int(camID[i]))[0]
+		videoname = glob.glob('*cam%02d*.*' % int(camID[i]))[0]
 		if len(videoname) > 0:
 			extract_starttime = extractdatetimes[0] + extractoffsets[i]
 			extract_starttime = extract_starttime.strftime('%H:%M:%S.%f')
@@ -167,6 +174,8 @@ for i in range(0,len(camID)):
 		
 			subcommand1 = ""
 			subcommand2 = ""
+			subcommand3 = ""
+			
 			if toextract[i] == "1":
 				contents = os.listdir(outdirframes)
 				if len(contents) > 1:
@@ -179,11 +188,11 @@ for i in range(0,len(camID)):
 					raise ValueError("error on camID %s: video folders must not already contain files" % camID[i])
 				outputvideoname = videoname.split('.')
 				outputvideoname = outputvideoname[0] + '.mov'
+				outputaudioname = outputvideoname[0] + '.wav'
+				contents = glob.glob(outdiraudio + '/*.wav')
 				subcommand2 = ' -ss ' + sync_starttime + ' -t ' + syncduration + ' -vcodec mpeg4 -acodec pcm_s16le -qscale:v 2 -r 30 -vf scale=-1:480 ' + outdirvideo + '\\' + outputvideoname
-				
+				subcommand3 = ' -ss ' + sync_starttime + ' -t ' + syncduration + ' -vn -ar 44100 -ac 1 -ab 192k -f wav -acodec pcm_s16le ' + outdiraudio + '\\' + outputaudioname
+			
 			command = 'ffmpeg -i ' + videoname + subcommand1 + subcommand2
 			print(command)
-			subprocess.call(command.split(' '))
-			
-			if tosync[i] == "0":
-				copy_if_newer(videoname, outdirvideo)
+			#subprocess.call(command.split(' '))
