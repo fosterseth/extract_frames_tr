@@ -7,7 +7,7 @@ def main():
         if len(rootletter) != 1:
             raise ValueError("provided drive letter must be one alphabetic letter")
     else:
-        rootletter = 'T'
+        rootletter = 'E'
 
     config = ConfigParser.ConfigParser()
     config.read(tr_definitions.config_name)
@@ -17,7 +17,7 @@ def main():
     dateofexp = config.get("subinfo", "dateofexp")
 
     filesep = '\\'
-    dirprefix = rootletter + ':' + filesep + 'multisensory' + filesep + 'experiment_' + expID + filesep + 'included' + filesep + '__' + dateofexp + '_' + kidID
+    dirprefix = rootletter + ':' + filesep + 'data' + filesep + expID + filesep + filesep + '__' + dateofexp + '_' + kidID
 
     tr_definitions.make_folder_bak(dirprefix)
 
@@ -25,9 +25,8 @@ def main():
 
     print("copying files to " + dirprefix)
     for f in files:
-        if 'bak' not in f:
-            print("copying " + f)
-            shutil.move(f, dirprefix)
+        print("copying " + f)
+        shutil.copy2(f, dirprefix)
     
     
 if __name__ == "__main__":
