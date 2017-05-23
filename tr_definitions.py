@@ -1,4 +1,4 @@
-import ConfigParser, os, datetime
+import os, datetime
 
 config_name = "config.ini"
 
@@ -34,4 +34,19 @@ def make_folder_num(foldername):
             break
     os.makedirs(foldername_num)
     return foldername_num
+    
+def seconds_to_ms(total_seconds):
+    if "f" in total_seconds:
+        frame_f_rate = total_seconds.split("f")
+        total_seconds = float(frame_f_rate[0]) / float(frame_f_rate[1])
+        total_seconds = '%.3f' % total_seconds
+    if ":" in total_seconds:
+        out = total_seconds
+    elif "." in total_seconds:
+        total_seconds = float(total_seconds)
+        m,s = divmod(total_seconds, 60)
+        # h,m = divmod(m, 60)
+        # return '%d:%d:%.3f' % (h,m,s)
+        out = '%02d:%06.3f' % (m,s) # 06 is total width, including decimal
+    return out
     
