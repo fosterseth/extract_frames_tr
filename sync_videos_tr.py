@@ -53,7 +53,7 @@ def main():
             sync_starttime = sync_begin + syncoffsets[i]
             sync_starttime_str = "%0.3f" % sync_starttime
             
-            subcommand = ' -t ' + syncduration_str + ' -vcodec mpeg4 -qscale:v 5 -r 30 -acodec aac -b:a 128k -f mov ' + outdirvideo + '\\' + outputvideoname
+            subcommand = ' -t ' + syncduration_str + ' -vcodec mpeg4 -qscale:v 2 -r 30 -acodec aac -b:a 128k -f mov ' + outdirvideo + '\\' + outputvideoname
             command = 'ffmpeg -ss ' + sync_starttime_str + ' -i ' + videoname + subcommand  
 
             print(command)
