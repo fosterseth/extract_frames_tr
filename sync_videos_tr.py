@@ -18,26 +18,25 @@ def main():
         elif s[0] == "end":
             sync_end = s[1]
             
-    print(camID)
-    print(synccamID)
-    print(sync_begin)
-    print(sync_end)
-    
     if len(sys.argv) > 1:
         tosync = sys.argv[1:]
     else:
         tosync = camID
     
     syncidx = camID.index(synccamID)
-    timestamps = [tr_definitions.seconds_to_ms(x) for x in timestamps]
-    sync_begin = tr_definitions.seconds_to_ms(sync_begin)
-    sync_end = tr_definitions.seconds_to_ms(sync_end)
-        
-    datetimes = [datetime.datetime.strptime(x, '%M:%S.%f') for x in timestamps]
-    syncoffsets = [x-datetimes[syncidx] for x in datetimes]
-    sync_begin = datetime.datetime.strptime(sync_begin, '%M:%S.%f')
-    sync_end = datetime.datetime.strptime(sync_end, '%M:%S.%f')
-    syncduration = str(sync_end - sync_begin)
+    timestamps = [tr_definitions.notation_to_ms(x) for x in timestamps]
+    sync_begin = tr_definitions.notation_to_ms(sync_begin)
+    sync_end = tr_definitions.notation_to_ms(sync_end)
+    
+    print("camID", camID)
+    print("synccamID", synccamID)
+    print("sync_begin", sync_begin)
+    print("sync_end", sync_end)
+    
+    syncoffsets = [x-timestamps[syncidx] for x in timestamps]
+    print("syncoffsets", syncoffsets)
+    syncduration_str = "%0.3f" % (sync_end - sync_begin)
+    print("syncduration_str", syncduration_str)
     
     outdirvideo = "sync"
 
@@ -52,9 +51,9 @@ def main():
             videonameparts = videoname.split('.')
             outputvideoname = videonameparts[0] + '.MOV'
             sync_starttime = sync_begin + syncoffsets[i]
-            sync_starttime_str = sync_starttime.strftime('%H:%M:%S.%f')
+            sync_starttime_str = "%0.3f" % sync_starttime
             
-            subcommand = ' -t ' + syncduration + ' -vcodec mpeg4 -qscale:v 5 -r 30 -vf scale=-1:480 -acodec aac -b:a 128k -f mov ' + outdirvideo + '\\' + outputvideoname
+            subcommand = ' -t ' + syncduration_str + ' -vcodec mpeg4 -qscale:v 5 -r 30 -acodec aac -b:a 128k -f mov ' + outdirvideo + '\\' + outputvideoname
             command = 'ffmpeg -ss ' + sync_starttime_str + ' -i ' + videoname + subcommand  
 
             print(command)
